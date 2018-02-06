@@ -13,7 +13,7 @@ class AuthController
         $auth = new Shop();
         $config = new Config();
         $auth->setup($config, $request->out("shop"));
-        $auth->getToken();
+        $auth->requestToken();
     }
 
     function callback(Request $request)

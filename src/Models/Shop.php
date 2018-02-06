@@ -21,7 +21,7 @@ class Shop extends Model
 
     public function setup(Config $config, String $shop_name)
     {
-        $this->setupRedirectUrl($config);
+        $this->setupRedirectCallback($config);
         $this->setupShopifyConfig($config);
 
         $this->shop_name = $shop_name;
@@ -30,7 +30,7 @@ class Shop extends Model
         return $this;
     }
 
-    private function setupRedirectUrl(Config $config)
+    private function setupRedirectCallback(Config $config)
     {
         $app_path = $config->getConfig("application")["app_path"];
 
@@ -62,14 +62,14 @@ class Shop extends Model
                 "SharedSecret" => $this->config["shared_secret"],
             );
         } else {
-            throw new \Exception("Did not found the shopify config", 1);
+            throw new Exception("Did not found the shopify config", 1);
         }
 
         $this->shopify = PHPShopify\ShopifySDK::config($config);
         return $this->shopify;
     }
 
-    public function getConfigWithToken(String $shop_name = null, $token)
+    public function getConfigWithToken($token, String $shop_name = null)
     {
         $config = array(
             "ShopUrl"     => ($shop_name == null) ? $this->shop_name : $shop_name,
@@ -80,13 +80,23 @@ class Shop extends Model
         return $this->shopify;
     }
 
-    public function getToken()
+    public function getConfig(String $token = null)
+    {
+        if($token == null)
+        {
+            return $this->getConfigWithoutToken();
+        } else {
+            return $this->getConfigWithToken($token);
+        }
+    }
+
+    public function requestToken()
     {
         if($this->scopes !== null)
         {
             \PHPShopify\AuthHelper::createAuthRequest($this->scopes, $this->redirectUrl);
         } else {
-            throw new Exception("Token was not found", 1);
+            throw new Exception("Could not receive token, scopes were not set", 1);
         }
     }
 
@@ -132,14 +142,9 @@ class Shop extends Model
     public function getApi(String $shop_name)
     {
         $shop = $this->getShopByName($shop_name);
-        return $this->getConfigWithToken($shop->shop_name, $shop->shop_token);
+        return $this->getConfigWithToken($shop->shop_token, $shop->shop_name);
     }
 
-    /**
-     *
-     * @param shop_name as String
-     * @return id of the main theme for a specific shop
-     **/
     public function getMainThemeId(String $shop_name)
     {
         $api = $this->getApi($shop_name);
